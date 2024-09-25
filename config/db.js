@@ -1,11 +1,12 @@
+require('dotenv').config(); 
 const mysql = require('mysql2');
 
 const db = mysql.createConnection({
-    host: 's3-la.com',
-    user: 'slacom_s3root',
-    password: 'S3Latin#2018#01', 
-    database: 'slacom_s3tools',
-    port: 3306
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT
 });
 
 db.connect((err) => {

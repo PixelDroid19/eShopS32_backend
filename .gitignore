@@ -50,3 +50,5 @@ firebase-debug.log
 
 # Ignorar el directorio de la base de datos (si se usa sqlite)
 *.sqlite
+
+.env
