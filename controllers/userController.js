@@ -36,7 +36,13 @@ exports.updateConfig = (req, res) => {
             asideColor = currentConfig.asideColor,
             logo = currentConfig.logo,
             language = currentConfig.language,
-            mainFont = currentConfig.mainFont
+            mainFont = currentConfig.mainFont,
+            address = currentConfig.address,
+            phone = currentConfig.phone,
+            email = currentConfig.email
+            facebook = currentConfig.facebook,
+            instagram = currentConfig.instagram,
+            twitter = currentConfig.twitter
         } = req.body;
 
         // Query para actualizar la configuración
@@ -46,13 +52,14 @@ exports.updateConfig = (req, res) => {
                 textColor = ?, primaryColor = ?, secondaryColor = ?, buttonColor = ?, 
                 buttonTextColor = ?, buttonHoverOpacity = ?, buttonFontSize = ?, 
                 buttonBorderRadius = ?, asideColor = ?, logo = ?, language = ?, 
-                mainFont = ?
+                mainFont = ?, address = ?, phone = ?, email = ?, facebook = ?, 
+                instagram = ?, twitter = ?
             WHERE id = ?`;
 
         const params = [
             title, backgroundColor, headerColor, headerTextColor, textColor, primaryColor,
             secondaryColor, buttonColor, buttonTextColor, buttonHoverOpacity, buttonFontSize,
-            buttonBorderRadius, asideColor, logo, language, mainFont, userId
+            buttonBorderRadius, asideColor, logo, language, mainFont, address, phone, email, facebook, instagram, twitter, userId
         ];
 
         // Ejecutar la actualización en la base de datos
