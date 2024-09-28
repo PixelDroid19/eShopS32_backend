@@ -39,7 +39,7 @@ exports.updateConfig = (req, res) => {
             mainFont = currentConfig.mainFont,
             address = currentConfig.address,
             phone = currentConfig.phone,
-            email = currentConfig.email
+            email = currentConfig.email,
             facebook = currentConfig.facebook,
             instagram = currentConfig.instagram,
             twitter = currentConfig.twitter
