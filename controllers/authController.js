@@ -17,7 +17,21 @@ exports.login = (req, res) => {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
+        // Asumimos que los permisos están almacenados en la base de datos
+        // Si no es así, ajusta esta parte según sea necesario
+        const permissions = [];
+        if (user.is_user) permissions.push("user");
+        if (user.is_admin) permissions.push("admin");
+        if (user.can_customize) permissions.push("customization");
+
         const token = jwt.sign({ id: user.id }, 'secret_key', { expiresIn: '1h' });
-        res.json({ message: 'Inicio de sesión exitoso', token, user });
+        res.json({ 
+            message: 'Inicio de sesión exitoso', 
+            token, 
+            user: {
+                ...user,
+                permissions
+            }
+        });
     });
 };
