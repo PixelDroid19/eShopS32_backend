@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 exports.getAllCategories = (req, res) => {
-    const query = 'SELECT * FROM shop_categories_test';
+    const query = 'SELECT id, name, icon FROM shop_categories';
 
     db.query(query, (error, results) => {
         if (error) {
@@ -10,7 +10,6 @@ exports.getAllCategories = (req, res) => {
         }
 
         res.json(results);
-        console.log(results);
     });
 };
 
