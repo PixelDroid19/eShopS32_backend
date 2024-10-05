@@ -35,21 +35,42 @@ exports.syncData = async (req, res) => {
 
         // Sincronizar categorías
         try {
-            const [clientCategories] = await clientDb.query('SELECT ID_Control, Departamento, Icon FROM departamento_inventario');
+            // Primero, obtenemos la información de las columnas de la tabla
+            const [columns] = await clientDb.query('SHOW COLUMNS FROM departamento_inventario');
+            const columnNames = columns.map(col => col.Field);
+
+            // Construimos la consulta dinámicamente basada en las columnas existentes
+            const selectFields = ['ID_Control', 'Departamento'];
+            if (columnNames.includes('Icon')) {
+                selectFields.push('Icon');
+            }
+            const selectQuery = `SELECT ${selectFields.join(', ')} FROM departamento_inventario`;
+
+            const [clientCategories] = await clientDb.query(selectQuery);
+
             for (const category of clientCategories) {
-                await db.promise().query(
-                    'INSERT INTO shop_categories (id, name, icon) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, icon = ?',
-                    [
+                const insertQuery = columnNames.includes('Icon')
+                    ? 'INSERT INTO shop_categories (id, name, icon, shop_username) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), icon = VALUES(icon)'
+                    : 'INSERT INTO shop_categories (id, name, shop_username) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name)';
+
+                const insertValues = columnNames.includes('Icon')
+                    ? [
                         category.ID_Control || null,
                         category.Departamento || null,
                         category.Icon || null,
+                        clientInfo[0].username
+                      ]
+                    : [
+                        category.ID_Control || null,
                         category.Departamento || null,
-                        category.Icon || null
-                    ]
-                );
+                        clientInfo[0].username
+                      ];
+
+                await db.promise().query(insertQuery, insertValues);
             }
         } catch (error) {
             console.error('Error al sincronizar categorías:', error);
+            // Registramos el error pero continuamos con el proceso
         }
 
         // Sincronizar productos
@@ -57,7 +78,7 @@ exports.syncData = async (req, res) => {
             const [clientProducts] = await clientDb.query('SELECT id, descripcion1, precio1, departamento, descripcion2, imagen FROM inventario');
             for (const product of clientProducts) {
                 await db.promise().query(
-                    'INSERT INTO shop_products (id, title, price, category, description, image) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE title = ?, price = ?, category = ?, description = ?, image = ?',
+                    'INSERT INTO shop_products (id, title, price, category, description, image, shop_username) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE title = ?, price = ?, category = ?, description = ?, image = ?',
                     [
                         product.id || null,
                         product.descripcion1 || null,
@@ -65,6 +86,7 @@ exports.syncData = async (req, res) => {
                         product.departamento || null,
                         product.descripcion2 || null,
                         product.imagen || null,
+                        clientInfo[0].username,
                         product.descripcion1 || null,
                         product.precio1 || null,
                         product.departamento || null,
