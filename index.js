@@ -6,7 +6,7 @@ const userRoutes = require('./routes/userRoutes');
 const categoriesRoutes = require('./routes/categoriesRoutes');
 const productRoutes = require('./routes/productRoutes');
 const syncRoutes = require('./routes/syncRoutes');
-
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 const PORT = 3000;
@@ -21,6 +21,7 @@ app.use('/user', userRoutes); // Rutas de usuario
 app.use('/categories', categoriesRoutes); // Rutas de categorías
 app.use('/products', productRoutes); // Rutas de productos
 app.use('/sync', syncRoutes); // Rutas de sincronización
+app.use('/orders', orderRoutes); // Rutas de órdenes
 
 // Inicio del servidor
 app.listen(PORT, () => {
