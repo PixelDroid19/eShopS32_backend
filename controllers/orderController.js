@@ -2,16 +2,18 @@ const db = require('../config/db');
 
 // Función para crear una nueva orden
 exports.createOrder = (req, res) => {
-    // Extraer datos del cuerpo de la solicitud
-    const { IDNumber, phoneNumber, customInvoiceRequired, name, address, email, items, total } = req.body;
+    const { IDNumber, phonePrefix, phoneNumber, customInvoiceRequired, name, address, email, items, total, country } = req.body;
+
+    // Combinar el prefijo y el número de teléfono
+    const fullPhoneNumber = `${phonePrefix}${phoneNumber}`;
 
     // Validar campos obligatorios
-    if (!phoneNumber || !email) {
+    if (!fullPhoneNumber || !email) {
         return res.status(400).json({ message: 'El número de teléfono y el correo electrónico son obligatorios' });
     }
 
     // Determinar si se requiere factura personalizada
-    const customInvoice = customInvoiceRequired === true || customInvoiceRequired === 1 || customInvoiceRequired === '1' ? 1 : 0;
+    const customInvoice = customInvoiceRequired === true ? 1 : 0;
 
     // Validar campos adicionales para factura personalizada
     if (customInvoice === 1) {
@@ -23,18 +25,19 @@ exports.createOrder = (req, res) => {
     // Preparar valores para la inserción de la orden
     const orderValues = [
         customInvoice === 1 ? IDNumber : null,
-        phoneNumber,
+        fullPhoneNumber,
         customInvoice,
         customInvoice === 1 ? name : null,
         address || null,
         email,
-        total
+        total,
+        country
     ];
 
     // Consulta SQL para insertar la orden
     const orderQuery = `
-        INSERT INTO shop_orders (id_number, phone_number, custom_invoice_required, name_user, address, email, total)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO shop_orders (id_number, phone_number, custom_invoice_required, name_user, address, email, total, country)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     // Ejecutar la consulta para crear la orden
@@ -53,7 +56,13 @@ exports.createOrder = (req, res) => {
         `;
 
         // Preparar valores para la inserción de items
-        const itemValues = items.map(item => [orderId, item.id, item.title, item.price, item.quantity]);
+        const itemValues = items.map(item => [
+            orderId, 
+            item.id, 
+            item.title, 
+            parseFloat(item.price.replace('.', '').replace(',', '.')), // Convertir el precio a número
+            item.quantity
+        ]);
 
         // Ejecutar la consulta para insertar los items
         db.query(itemQuery, [itemValues], (error) => {
