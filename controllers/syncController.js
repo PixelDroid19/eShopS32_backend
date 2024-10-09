@@ -76,24 +76,41 @@ exports.syncData = async (req, res) => {
         // Sincronizar productos
         try {
             const [clientProducts] = await clientDb.query('SELECT id, descripcion1, precio1, departamento, descripcion2, imagen FROM inventario');
+            
+            // Obtener los IDs de productos existentes en la tienda
+            const [existingProducts] = await db.promise().query('SELECT id FROM shop_products WHERE shop_username = ?', [clientInfo[0].username]);
+            const existingProductIds = new Set(existingProducts.map(p => p.id));
+
             for (const product of clientProducts) {
-                await db.promise().query(
-                    'INSERT INTO shop_products (id, title, price, category, description, image, shop_username) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE title = ?, price = ?, category = ?, description = ?, image = ?',
-                    [
-                        product.id || null,
-                        product.descripcion1 || null,
-                        product.precio1 || null,
-                        product.departamento || null,
-                        product.descripcion2 || null,
-                        product.imagen || null,
-                        clientInfo[0].username,
-                        product.descripcion1 || null,
-                        product.precio1 || null,
-                        product.departamento || null,
-                        product.descripcion2 || null,
-                        product.imagen || null
-                    ]
-                );
+                if (!existingProductIds.has(product.id)) {
+                    // Si el producto no existe, lo insertamos
+                    await db.promise().query(
+                        'INSERT INTO shop_products (id, title, price, category, description, image, shop_username) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                        [
+                            product.id,
+                            product.descripcion1 || null,
+                            product.precio1 || null,
+                            product.departamento || null,
+                            product.descripcion2 || null,
+                            product.imagen || null,
+                            clientInfo[0].username
+                        ]
+                    );
+                } else {
+                    // Si el producto ya existe, actualizamos sus datos
+                    await db.promise().query(
+                        'UPDATE shop_products SET title = ?, price = ?, category = ?, description = ?, image = ? WHERE id = ? AND shop_username = ?',
+                        [
+                            product.descripcion1 || null,
+                            product.precio1 || null,
+                            product.departamento || null,
+                            product.descripcion2 || null,
+                            product.imagen || null,
+                            product.id,
+                            clientInfo[0].username
+                        ]
+                    );
+                }
             }
         } catch (error) {
             console.error('Error al sincronizar productos:', error);
