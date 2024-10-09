@@ -51,7 +51,7 @@ exports.createOrder = (req, res) => {
 
         // Consulta SQL para insertar los items de la orden
         const itemQuery = `
-            INSERT INTO shop_order_items (order_id, product_id, title, price, quantity, country)
+            INSERT INTO shop_order_items (order_id, product_id, title, price, quantity)
             VALUES ?
         `;
 
@@ -61,8 +61,7 @@ exports.createOrder = (req, res) => {
             item.id, 
             item.title, 
             item.price, // Mantener el precio como string
-            item.quantity,
-            country
+            item.quantity
         ]);
 
         // Ejecutar la consulta para insertar los items
@@ -92,16 +91,9 @@ exports.createOrder = (req, res) => {
                 const orderItems = orderDetails.map(item => ({
                     id: item.id,
                     product_id: item.product_id,
-                    product: {
-                        id: item.id,
-                        title: item.title,
-                        price: item.price,
-                        category: item.category,
-                        description: item.description,
-                        image: item.image
-                    },
-                    quantity: item.quantity,
-                    
+                    title: item.title,
+                    price: item.price,
+                    quantity: item.quantity
                 }));
 
                 // Crear objeto con los detalles completos de la orden
