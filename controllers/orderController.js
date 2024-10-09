@@ -30,7 +30,7 @@ exports.createOrder = (req, res) => {
         customInvoice === 1 ? name : null,
         address || null,
         email,
-        total,
+        total.toString(), // Convertir a string para asegurar que se guarde como se recibió
         country
     ];
 
@@ -51,7 +51,7 @@ exports.createOrder = (req, res) => {
 
         // Consulta SQL para insertar los items de la orden
         const itemQuery = `
-            INSERT INTO shop_order_items (order_id, product_id, title, price, quantity)
+            INSERT INTO shop_order_items (order_id, product_id, title, price, quantity, country)
             VALUES ?
         `;
 
@@ -60,8 +60,9 @@ exports.createOrder = (req, res) => {
             orderId, 
             item.id, 
             item.title, 
-            parseFloat(item.price.replace('.', '').replace(',', '.')), // Convertir el precio a número
-            item.quantity
+            item.price, // Mantener el precio como string
+            item.quantity,
+            country
         ]);
 
         // Ejecutar la consulta para insertar los items
@@ -73,10 +74,9 @@ exports.createOrder = (req, res) => {
 
             // Consulta para obtener los detalles completos de la orden
             const getOrderDetailsQuery = `
-                SELECT o.*, oi.*, p.*
+                SELECT o.*, oi.*
                 FROM shop_orders o
                 JOIN shop_order_items oi ON o.id = oi.order_id
-                JOIN shop_products p ON oi.product_id = p.id
                 WHERE o.id = ?
             `;
 
@@ -92,9 +92,6 @@ exports.createOrder = (req, res) => {
                 const orderItems = orderDetails.map(item => ({
                     id: item.id,
                     product_id: item.product_id,
-                    title: item.title,
-                    price: item.price,
-                    quantity: item.quantity,
                     product: {
                         id: item.id,
                         title: item.title,
@@ -102,7 +99,9 @@ exports.createOrder = (req, res) => {
                         category: item.category,
                         description: item.description,
                         image: item.image
-                    }
+                    },
+                    quantity: item.quantity,
+                    
                 }));
 
                 // Crear objeto con los detalles completos de la orden
@@ -115,6 +114,7 @@ exports.createOrder = (req, res) => {
                     address: orderInfo.address,
                     email: orderInfo.email,
                     total: orderInfo.total,
+                    country: orderInfo.country,
                     items: orderItems
                 };
 
