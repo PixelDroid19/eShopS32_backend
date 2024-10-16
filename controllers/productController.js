@@ -12,6 +12,7 @@ exports.getProducts = (req, res) => {
     const maxPrice = parseFloat(req.query.maxPrice);
     const sortBy = req.query.sortBy || 'id'; // Ordenar por defecto por ID
     const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
+    const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
 
     let query = 'SELECT * FROM shop_products';
     let countQuery = 'SELECT COUNT(*) as total FROM shop_products';
@@ -27,6 +28,13 @@ exports.getProducts = (req, res) => {
         query += ' WHERE category = ?';
         countQuery += ' WHERE category = ?';
         queryParams.push(category);
+    }
+
+    // Añadir filtro de búsqueda
+    if (search) {
+        query += (queryParams.length ? ' AND' : ' WHERE') + ' title LIKE ?';
+        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' title LIKE ?';
+        queryParams.push(`%${search}%`); // Búsqueda parcial
     }
 
     // Añadir filtros de precio
