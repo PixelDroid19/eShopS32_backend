@@ -3,15 +3,24 @@ const db = require('../config/db');
 
 // Exportar la función para obtener productos
 exports.getProducts = (req, res) => {
-    // Obtener parámetros de paginación y categoría de la consulta
+    // Obtener parámetros de paginación, categoría, precio mínimo y máximo de la consulta
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const category = req.query.category;
+    const minPrice = parseFloat(req.query.minPrice);
+    const maxPrice = parseFloat(req.query.maxPrice);
+    const sortBy = req.query.sortBy || 'id'; // Ordenar por defecto por ID
+    const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
 
     let query = 'SELECT * FROM shop_products';
     let countQuery = 'SELECT COUNT(*) as total FROM shop_products';
     let queryParams = [];
+
+    // Validar que el precio mínimo no sea mayor que el máximo
+    if ((minPrice && maxPrice) && (minPrice > maxPrice)) {
+        return res.status(400).json({ message: 'El precio mínimo no puede ser mayor que el precio máximo' });
+    }
 
     // Si se proporciona una categoría, añadir el filtro a las consultas
     if (category) {
@@ -19,6 +28,21 @@ exports.getProducts = (req, res) => {
         countQuery += ' WHERE category = ?';
         queryParams.push(category);
     }
+
+    // Añadir filtros de precio
+    if (minPrice) {
+        query += (queryParams.length ? ' AND' : ' WHERE') + ' price >= ?';
+        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' price >= ?';
+        queryParams.push(minPrice);
+    }
+    if (maxPrice) {
+        query += (queryParams.length ? ' AND' : ' WHERE') + ' price <= ?';
+        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' price <= ?';
+        queryParams.push(maxPrice);
+    }
+
+    // Añadir ordenamiento
+    query += ` ORDER BY ${sortBy} ${order}`;
 
     // Añadir límite y offset para la paginación
     query += ' LIMIT ? OFFSET ?';
