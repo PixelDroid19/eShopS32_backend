@@ -55,6 +55,7 @@ exports.updateConfig = (req, res) => {
       featuresTitle = currentConfig.featuresTitle,
       featuresSubtitle = currentConfig.featuresSubtitle,
       features = currentConfig.features,
+      description = currentConfig.description, 
     } = req.body;
 
     // Query para actualizar la configuración
@@ -67,8 +68,7 @@ exports.updateConfig = (req, res) => {
                 mainFont = ?, address = ?, phone = ?, email = ?, facebook = ?, 
                 instagram = ?, twitter = ?, heroBgGradient = ?, heroTextColor = ?, 
                 heroTitle = ?, heroSubtitle = ?, heroButtonText = ?, heroButtonColorScheme = ?, 
-                heroImage = ?, featuresTitle = ?, featuresSubtitle = ?, features = ?, 
-
+                heroImage = ?, featuresTitle = ?, featuresSubtitle = ?, features = ?, description = ?
             WHERE id = ?`;
 
     const params = [
@@ -104,12 +104,14 @@ exports.updateConfig = (req, res) => {
       featuresTitle,
       featuresSubtitle,
       features,
+      description,
       userId,
     ];
 
     // Ejecutar la actualización en la base de datos
     db.query(updateConfigQuery, params, (err, result) => {
       if (err) {
+        console.error('Error en la consulta de actualización:', err); // Agrega esta línea
         return res
           .status(500)
           .json({ message: "Error al actualizar la configuración" });
