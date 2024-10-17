@@ -14,7 +14,7 @@ exports.getProducts = (req, res) => {
     const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
     const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
 
-    let query = 'SELECT * FROM shop_products';
+    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products';
     let countQuery = 'SELECT COUNT(*) as total FROM shop_products';
     let queryParams = [];
 
@@ -39,18 +39,22 @@ exports.getProducts = (req, res) => {
 
     // Añadir filtros de precio
     if (minPrice) {
-        query += (queryParams.length ? ' AND' : ' WHERE') + ' price >= ?';
-        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' price >= ?';
+        query += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
+        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
         queryParams.push(minPrice);
     }
     if (maxPrice) {
-        query += (queryParams.length ? ' AND' : ' WHERE') + ' price <= ?';
-        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' price <= ?';
+        query += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
+        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
         queryParams.push(maxPrice);
     }
 
     // Añadir ordenamiento
-    query += ` ORDER BY ${sortBy} ${order}`;
+    if (sortBy === 'price') {
+        query += ` ORDER BY price_numeric ${order}`;
+    } else {
+        query += ` ORDER BY ${sortBy} ${order}`;
+    }
 
     // Añadir límite y offset para la paginación
     query += ' LIMIT ? OFFSET ?';
