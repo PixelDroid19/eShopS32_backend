@@ -45,6 +45,7 @@ exports.updateConfig = (req, res) => {
       facebook = currentConfig.facebook,
       instagram = currentConfig.instagram,
       twitter = currentConfig.twitter,
+      whatsappNumber = currentConfig.whatsappNumber,
       heroBgGradient = currentConfig.heroBgGradient,
       heroTextColor = currentConfig.heroTextColor,
       heroTitle = currentConfig.heroTitle,
@@ -66,9 +67,10 @@ exports.updateConfig = (req, res) => {
                 buttonTextColor = ?, buttonHoverOpacity = ?, buttonFontSize = ?, 
                 buttonBorderRadius = ?, asideColor = ?, logo = ?, language = ?, 
                 mainFont = ?, address = ?, phone = ?, email = ?, facebook = ?, 
-                instagram = ?, twitter = ?, heroBgGradient = ?, heroTextColor = ?, 
-                heroTitle = ?, heroSubtitle = ?, heroButtonText = ?, heroButtonColorScheme = ?, 
-                heroImage = ?, featuresTitle = ?, featuresSubtitle = ?, features = ?, description = ?
+                instagram = ?, twitter = ?, whatsappNumber = ?, heroBgGradient = ?, 
+                heroTextColor = ?, heroTitle = ?, heroSubtitle = ?, heroButtonText = ?, 
+                heroButtonColorScheme = ?, heroImage = ?, featuresTitle = ?, 
+                featuresSubtitle = ?, features = ?, description = ?
             WHERE id = ?`;
 
     const params = [
@@ -94,6 +96,7 @@ exports.updateConfig = (req, res) => {
       facebook,
       instagram,
       twitter,
+      whatsappNumber,
       heroBgGradient,
       heroTextColor,
       heroTitle,
