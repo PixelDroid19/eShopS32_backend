@@ -39,9 +39,6 @@ exports.updateConfig = (req, res) => {
       logo = currentConfig.logo,
       language = currentConfig.language,
       mainFont = currentConfig.mainFont,
-      address = currentConfig.address,
-      phone = currentConfig.phone,
-      email = currentConfig.email,
       facebook = currentConfig.facebook,
       instagram = currentConfig.instagram,
       twitter = currentConfig.twitter,
@@ -56,8 +53,14 @@ exports.updateConfig = (req, res) => {
       featuresTitle = currentConfig.featuresTitle,
       featuresSubtitle = currentConfig.featuresSubtitle,
       features = currentConfig.features,
-      description = currentConfig.description, 
+      description = currentConfig.description,
+      footer = req.body.footer || {},
     } = req.body;
+
+    // Extraer address, email y phone del objeto contact en footer
+    const address = footer.contact?.address || currentConfig.address;
+    const email = footer.contact?.email || currentConfig.email;
+    const phone = footer.contact?.phone || currentConfig.phone;
 
     // Query para actualizar la configuración
     const updateConfigQuery = `
@@ -114,7 +117,7 @@ exports.updateConfig = (req, res) => {
     // Ejecutar la actualización en la base de datos
     db.query(updateConfigQuery, params, (err, result) => {
       if (err) {
-        console.error('Error en la consulta de actualización:', err); // Agrega esta línea
+        console.error('Error en la consulta de actualización:', err);
         return res
           .status(500)
           .json({ message: "Error al actualizar la configuración" });
