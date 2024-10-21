@@ -39,9 +39,6 @@ exports.updateConfig = (req, res) => {
       logo = currentConfig.logo,
       language = currentConfig.language,
       mainFont = currentConfig.mainFont,
-      facebook = currentConfig.facebook,
-      instagram = currentConfig.instagram,
-      twitter = currentConfig.twitter,
       whatsappNumber = currentConfig.whatsappNumber,
       heroBgGradient = currentConfig.heroBgGradient,
       heroTextColor = currentConfig.heroTextColor,
@@ -61,6 +58,11 @@ exports.updateConfig = (req, res) => {
     const address = footer.contact?.address || currentConfig.address;
     const email = footer.contact?.email || currentConfig.email;
     const phone = footer.contact?.phone || currentConfig.phone;
+
+    // Extraer redes sociales
+    const facebook = footer.socialLinks?.find(link => link.name === 'Facebook')?.url || currentConfig.facebook;
+    const twitter = footer.socialLinks?.find(link => link.name === 'Twitter')?.url || currentConfig.twitter;
+    const instagram = footer.socialLinks?.find(link => link.name === 'Instagram')?.url || currentConfig.instagram;
 
     // Query para actualizar la configuración
     const updateConfigQuery = `
