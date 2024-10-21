@@ -40,18 +40,9 @@ exports.updateConfig = (req, res) => {
       language = currentConfig.language,
       mainFont = currentConfig.mainFont,
       whatsappNumber = currentConfig.whatsappNumber,
-      heroBgGradient = currentConfig.heroBgGradient,
-      heroTextColor = currentConfig.heroTextColor,
-      heroTitle = currentConfig.heroTitle,
-      heroSubtitle = currentConfig.heroSubtitle,
-      heroButtonText = currentConfig.heroButtonText,
-      heroButtonColorScheme = currentConfig.heroButtonColorScheme,
-      heroImage = currentConfig.heroImage,
-      featuresTitle = currentConfig.featuresTitle,
-      featuresSubtitle = currentConfig.featuresSubtitle,
-      features = currentConfig.features,
       description = currentConfig.description,
       footer = req.body.footer || {},
+      landingPage = req.body.landingPage || {},
     } = req.body;
 
     // Extraer address, email y phone del objeto contact en footer
@@ -63,6 +54,18 @@ exports.updateConfig = (req, res) => {
     const facebook = footer.socialLinks?.find(link => link.name === 'Facebook')?.url || currentConfig.facebook;
     const twitter = footer.socialLinks?.find(link => link.name === 'Twitter')?.url || currentConfig.twitter;
     const instagram = footer.socialLinks?.find(link => link.name === 'Instagram')?.url || currentConfig.instagram;
+
+    // Extraer configuración de la página de inicio
+    const heroBgGradient = landingPage.heroBgGradient || currentConfig.heroBgGradient;
+    const heroTextColor = landingPage.heroTextColor || currentConfig.heroTextColor;
+    const heroTitle = landingPage.heroTitle || currentConfig.heroTitle;
+    const heroSubtitle = landingPage.heroSubtitle || currentConfig.heroSubtitle;
+    const heroButtonText = landingPage.heroButtonText || currentConfig.heroButtonText;
+    const heroButtonColorScheme = landingPage.heroButtonColorScheme || currentConfig.heroButtonColorScheme;
+    const heroImage = landingPage.heroImage || currentConfig.heroImage;
+    const featuresTitle = landingPage.featuresTitle || currentConfig.featuresTitle;
+    const featuresSubtitle = landingPage.featuresSubtitle || currentConfig.featuresSubtitle;
+    const features = landingPage.features || currentConfig.features;
 
     // Query para actualizar la configuración
     const updateConfigQuery = `
