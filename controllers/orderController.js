@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 // Función para crear una nueva orden
 exports.createOrder = (req, res) => {
-    const { IDNumber, phonePrefix, phoneNumber, customInvoiceRequired, name, address, email, items, total, country } = req.body;
+    const { IDNumber, phonePrefix, phoneNumber, customInvoiceRequired, name, address, email, items, total, country, shop_id } = req.body;
 
     // Combinar el prefijo y el número de teléfono
     const fullPhoneNumber = `${phonePrefix}${phoneNumber}`;
@@ -31,13 +31,14 @@ exports.createOrder = (req, res) => {
         address || null,
         email,
         total.toString(), // Convertir a string para asegurar que se guarde como se recibió
-        country
+        country,
+        shop_id
     ];
 
     // Consulta SQL para insertar la orden
     const orderQuery = `
-        INSERT INTO shop_orders (id_number, phone_number, custom_invoice_required, name_user, address, email, total, country)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO shop_orders (id_number, phone_number, custom_invoice_required, name_user, address, email, total, country, shop_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     // Ejecutar la consulta para crear la orden
@@ -70,11 +71,15 @@ exports.createOrder = (req, res) => {
                 return res.status(500).json({ message: 'Error al crear los items de la orden' });
             }
 
-            // Consulta para obtener los detalles completos de la orden
+            // Modificar la consulta para obtener los detalles de la orden
             const getOrderDetailsQuery = `
-                SELECT o.*, oi.*
+                SELECT o.id, o.id_number, o.phone_number, o.custom_invoice_required, o.name_user, 
+                       o.address, o.email, o.total, o.created_at, o.country, o.shop_id,
+                       oi.price_at_time, oi.quantity,
+                       p.id AS product_id, p.shop_username, p.title, p.price, p.category, p.description
                 FROM shop_orders o
                 JOIN shop_order_items oi ON o.id = oi.order_id
+                JOIN shop_products p ON oi.product_id = p.id
                 WHERE o.id = ?
             `;
 
@@ -87,11 +92,17 @@ exports.createOrder = (req, res) => {
 
                 // Estructurar los detalles de la orden
                 const orderInfo = orderDetails[0];
-                const orderItems = orderDetails.map(item => ({
-                    id: item.id,
-                    product_id: item.product_id,
+                const items = orderDetails.map(item => ({
                     price_at_time: item.price_at_time,
-                    quantity: item.quantity
+                    quantity: item.quantity,
+                    product: {
+                        id: item.product_id,
+                        shop_username: item.shop_username,
+                        title: item.title,
+                        price: item.price,
+                        category: item.category,
+                        description: item.description
+                    }
                 }));
 
                 // Crear objeto con los detalles completos de la orden
@@ -103,9 +114,11 @@ exports.createOrder = (req, res) => {
                     name_user: orderInfo.name_user,
                     address: orderInfo.address,
                     email: orderInfo.email,
-                    total: orderInfo.total,
+                    created_at: orderInfo.created_at,
                     country: orderInfo.country,
-                    items: orderItems
+                    shop_id: orderInfo.shop_id,
+                    items: items,
+                    total: orderInfo.total
                 };
 
                 // Enviar respuesta con los detalles de la orden creada
