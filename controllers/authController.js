@@ -32,11 +32,6 @@ exports.login = (req, res) => {
         delete user.admin_database;
         delete user.admin_port;
 
-        // Antes de enviar la respuesta
-        if (user.logo && user.logo.type === 'Buffer') {
-            user.logo = `data:image/jpeg;base64,${Buffer.from(user.logo.data).toString('base64')}`;
-        }
-
         res.json({ 
             message: 'Inicio de sesión exitoso', 
             token, 
