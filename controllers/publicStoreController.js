@@ -28,8 +28,8 @@ exports.getStoreProducts = async (req, res) => {
     const category = req.query.category;
 
     try {
-        let query = 'SELECT * FROM shop_products WHERE shop_username = ?';
-        let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE shop_username = ?';
+        let query = 'SELECT * FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
+        let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
         let queryParams = [shopUsername];
 
         if (category) {

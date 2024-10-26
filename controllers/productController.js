@@ -1,5 +1,7 @@
 // Importar la configuración de la base de datos
 const db = require('../config/db');
+const fs = require('fs');
+const path = require('path');
 
 // Exportar la función para obtener productos
 exports.getProducts = (req, res) => {
@@ -14,8 +16,8 @@ exports.getProducts = (req, res) => {
     const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
     const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
 
-    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products';
-    let countQuery = 'SELECT COUNT(*) as total FROM shop_products';
+    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products WHERE is_active = TRUE';
+    let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE is_active = TRUE';
     let queryParams = [];
 
     // Validar que el precio mínimo no sea mayor que el máximo
@@ -25,27 +27,27 @@ exports.getProducts = (req, res) => {
 
     // Si se proporciona una categoría, añadir el filtro a las consultas
     if (category) {
-        query += ' WHERE category = ?';
-        countQuery += ' WHERE category = ?';
+        query += ' AND category = ?';
+        countQuery += ' AND category = ?';
         queryParams.push(category);
     }
 
     // Añadir filtro de búsqueda
     if (search) {
-        query += (queryParams.length ? ' AND' : ' WHERE') + ' title LIKE ?';
-        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' title LIKE ?';
+        query += ' AND title LIKE ?';
+        countQuery += ' AND title LIKE ?';
         queryParams.push(`%${search}%`); // Búsqueda parcial
     }
 
     // Añadir filtros de precio
     if (minPrice) {
-        query += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
-        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
+        query += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
+        countQuery += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
         queryParams.push(minPrice);
     }
     if (maxPrice) {
-        query += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
-        countQuery += (queryParams.length ? ' AND' : ' WHERE') + ' CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
+        query += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
+        countQuery += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
         queryParams.push(maxPrice);
     }
 
@@ -103,3 +105,71 @@ Para paginar: GET /products?page=1&limit=10
 Para filtrar por categoría: GET /products?category=1
 Para combinar paginación y filtrado: GET /products?page=1&limit=10&category=1 
 */
+
+exports.deleteProduct = (req, res) => {
+    const productId = req.params.id;
+
+    const updateQuery = 'UPDATE shop_products SET is_active = FALSE WHERE id = ?';
+
+    db.query(updateQuery, [productId], (error, results) => {
+        if (error) {
+            console.error('Error al desactivar el producto:', error);
+            return res.status(500).json({ message: 'Error al desactivar el producto' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Producto no encontrado' });
+        }
+
+        res.status(200).json({ message: 'Producto desactivado exitosamente' });
+    });
+};
+
+exports.updateProduct = (req, res) => {
+    const productId = req.params.id;
+    const { title, price, category, description, image } = req.body;
+
+    const updateQuery = `
+        UPDATE shop_products 
+        SET title = ?, 
+            price = ?, 
+            category = ?, 
+            description = ?, 
+            image = ?
+        WHERE id = ?
+    `;
+
+    db.query(updateQuery, [title, price, category, description, image, productId], (error, results) => {
+        if (error) {
+            console.error('Error al actualizar el producto:', error);
+            return res.status(500).json({ message: 'Error al actualizar el producto' });
+        }
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Producto no encontrado' });
+        }
+
+        res.status(200).json({ message: 'Producto actualizado exitosamente' });
+    });
+};
+
+exports.addProduct = (req, res) => {
+    const { title, price, category, description, image, shop_username } = req.body;
+
+    const insertQuery = `
+        INSERT INTO shop_products (title, price, category, description, image, shop_username, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, TRUE)
+    `;
+
+    db.query(insertQuery, [title, price, category, description, image, shop_username], (error, results) => {
+        if (error) {
+            console.error('Error al añadir el producto:', error);
+            return res.status(500).json({ message: 'Error al añadir el producto', error: error });
+        }
+
+        res.status(201).json({ 
+            message: 'Producto añadido exitosamente',
+            productId: results.insertId
+        });
+    });
+};
