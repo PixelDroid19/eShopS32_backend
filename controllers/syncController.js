@@ -75,7 +75,7 @@ exports.syncData = async (req, res) => {
 
         // Sincronizar productos
         try {
-            const [clientProducts] = await clientDb.query('SELECT id, descripcion1, precio1, departamento, descripcion2, imagen_64 FROM inventario');
+            const [clientProducts] = await clientDb.query('SELECT id, descripcion1, precio1, departamento, fichatec, imagen_64 FROM inventario');
             
             // Obtener los IDs de productos existentes en la tienda
             const [existingProducts] = await db.promise().query('SELECT id FROM shop_products WHERE shop_username = ?', [clientInfo[0].username]);
@@ -91,7 +91,7 @@ exports.syncData = async (req, res) => {
                             product.descripcion1 || null,
                             product.precio1 || null,
                             product.departamento || null,
-                            product.descripcion2 || null,
+                            product.fichatec || null,
                             product.imagen_64 || null,
                             clientInfo[0].username
                         ]
@@ -104,7 +104,7 @@ exports.syncData = async (req, res) => {
                             product.descripcion1 || null,
                             product.precio1 || null,
                             product.departamento || null,
-                            product.descripcion2 || null,
+                            product.fichatec || null,
                             product.imagen_64 || null,
                             product.id,
                             clientInfo[0].username
