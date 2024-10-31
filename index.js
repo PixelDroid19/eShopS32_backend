@@ -14,16 +14,17 @@ const PORT = 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 
 // Rutas
-app.use('/auth', authRoutes); // Rutas de autenticación
-app.use('/user', userRoutes); // Rutas de usuario
-app.use('/categories', categoriesRoutes); // Rutas de categorías
-app.use('/products', productRoutes); // Rutas de productos
-app.use('/sync', syncRoutes); // Rutas de sincronización
-app.use('/orders', orderRoutes); // Rutas de órdenes
-app.use('/store', publicStoreRoutes); // Rutas de la tienda pública
+app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
+app.use('/categories', categoriesRoutes);
+app.use('/products', productRoutes);
+app.use('/sync', syncRoutes);
+app.use('/orders', orderRoutes);
+app.use('/store', publicStoreRoutes);
 
 // Inicio del servidor
 app.listen(PORT, () => {
