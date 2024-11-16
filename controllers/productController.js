@@ -109,17 +109,18 @@ Para combinar paginación y filtrado: GET /products?page=1&limit=10&category=1
 
 exports.deleteProduct = (req, res) => {
     const productId = req.params.id;
+    const { shopUsername } = req.params; // Obtener shopUsername
 
-    const updateQuery = 'UPDATE shop_products SET is_active = FALSE WHERE id = ?';
+    const updateQuery = 'UPDATE shop_products SET is_active = FALSE WHERE id = ? AND shop_username = ?';
 
-    db.query(updateQuery, [productId], (error, results) => {
+    db.query(updateQuery, [productId, shopUsername], (error, results) => {
         if (error) {
             console.error('Error al desactivar el producto:', error);
             return res.status(500).json({ message: 'Error al desactivar el producto' });
         }
 
         if (results.affectedRows === 0) {
-            return res.status(404).json({ message: 'Producto no encontrado' });
+            return res.status(404).json({ message: 'Producto no encontrado o no pertenece a esta tienda' });
         }
 
         res.status(200).json({ message: 'Producto desactivado exitosamente' });
