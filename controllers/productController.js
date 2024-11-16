@@ -129,26 +129,20 @@ exports.deleteProduct = (req, res) => {
 
 exports.updateProduct = (req, res) => {
     const productId = req.params.id;
+    const { shopUsername } = req.params; // Obtener shopUsername
     const { title, price, category, description, image } = req.body;
 
-    const updateQuery = `
-        UPDATE shop_products 
-        SET title = ?, 
-            price = ?, 
-            category = ?, 
-            description = ?, 
-            image = ?
-        WHERE id = ?
-    `;
+    const updateQuery = 
+        'UPDATE shop_products SET title = ?, price = ?, category = ?, description = ?, image = ? WHERE id = ? AND shop_username = ?';
 
-    db.query(updateQuery, [title, price, category, description, image, productId], (error, results) => {
+    db.query(updateQuery, [title, price, category, description, image, productId, shopUsername], (error, results) => {
         if (error) {
             console.error('Error al actualizar el producto:', error);
             return res.status(500).json({ message: 'Error al actualizar el producto' });
         }
 
         if (results.affectedRows === 0) {
-            return res.status(404).json({ message: 'Producto no encontrado' });
+            return res.status(404).json({ message: 'Producto no encontrado o no pertenece a esta tienda' });
         }
 
         res.status(200).json({ message: 'Producto actualizado exitosamente' });
