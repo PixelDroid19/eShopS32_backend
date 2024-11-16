@@ -152,10 +152,8 @@ exports.updateProduct = (req, res) => {
 exports.addProduct = (req, res) => {
     const { title, price, category, description, image, shop_username } = req.body;
 
-    const insertQuery = `
-        INSERT INTO shop_products (title, price, category, description, image, shop_username, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, TRUE)
-    `;
+    const insertQuery = 
+        'INSERT INTO shop_products (title, price, category, description, image, shop_username, is_active) VALUES (?, ?, ?, ?, ?, ?, TRUE)';
 
     db.query(insertQuery, [title, price, category, description, image, shop_username], (error, results) => {
         if (error) {
