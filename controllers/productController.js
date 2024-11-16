@@ -15,10 +15,11 @@ exports.getProducts = (req, res) => {
     const sortBy = req.query.sortBy || 'id'; // Ordenar por defecto por ID
     const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
     const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
+    const { shopUsername } = req.params; // Obtener shopUsername del parámetro de la URL
 
-    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products WHERE is_active = TRUE';
-    let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE is_active = TRUE';
-    let queryParams = [];
+    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
+    let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
+    let queryParams = [shopUsername]; // Agregar shopUsername al arreglo de parámetros
 
     // Validar que el precio mínimo no sea mayor que el máximo
     if ((minPrice && maxPrice) && (minPrice > maxPrice)) {

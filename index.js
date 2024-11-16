@@ -21,8 +21,7 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 // Rutas
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
-app.use('/categories', categoriesRoutes);
-app.use('/products', productRoutes);
+app.use('/:shopUsername/products', productRoutes);
 app.use('/sync', syncRoutes);
 app.use('/orders', orderRoutes);
 app.use('/store', publicStoreRoutes);
