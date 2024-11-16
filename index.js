@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const categoriesRoutes = require('./routes/categoriesRoutes');
 const productRoutes = require('./routes/productRoutes');
 const syncRoutes = require('./routes/syncRoutes');
 const orderRoutes = require('./routes/orderRoutes');
