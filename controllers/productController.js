@@ -15,7 +15,7 @@ exports.getProducts = (req, res) => {
     const sortBy = req.query.sortBy || 'id'; // Ordenar por defecto por ID
     const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
     const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
-    const { shopUsername } = req.params; // Obtener shopUsername del parámetro de la URL
+    const shopUsername = req.baseUrl.split('/')[1]
 
     let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
     let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
@@ -109,7 +109,7 @@ Para combinar paginación y filtrado: GET /products?page=1&limit=10&category=1
 
 exports.deleteProduct = (req, res) => {
     const productId = req.params.id;
-    const { shopUsername } = req.params; // Obtener shopUsername
+    const shopUsername = req.baseUrl.split('/')[1]
 
     const updateQuery = 'UPDATE shop_products SET is_active = FALSE WHERE id = ? AND shop_username = ?';
 
@@ -129,7 +129,7 @@ exports.deleteProduct = (req, res) => {
 
 exports.updateProduct = (req, res) => {
     const productId = req.params.id;
-    const { shopUsername } = req.params; // Obtener shopUsername
+    const shopUsername = req.baseUrl.split('/')[1]
     const { title, price, category, description, image } = req.body;
 
     const updateQuery = 
