@@ -5,7 +5,7 @@ exports.getStoreConfig = async (req, res) => {
 
     try {
         const [storeConfig] = await db.promise().query(
-            'SELECT title, backgroundColor, headerColor, headerTextColor, textColor, primaryColor, secondaryColor, buttonColor, buttonTextColor, buttonHoverOpacity, buttonFontSize, buttonBorderRadius, asideColor, logo, language, mainFont, address, phone, email, facebook, instagram, twitter, whatsappNumber, heroBgGradient, heroTextColor, heroTitle, heroSubtitle, heroButtonText, heroButtonColorScheme, heroImage, featuresTitle, featuresSubtitle, features FROM shop_cuentas WHERE username = ?',
+            'SELECT id, title, backgroundColor, headerColor, headerTextColor, textColor, primaryColor, secondaryColor, buttonColor, buttonTextColor, buttonHoverOpacity, buttonFontSize, buttonBorderRadius, asideColor, logo, language, mainFont, address, phone, email, facebook, instagram, twitter, whatsappNumber, heroBgGradient, heroTextColor, heroTitle, heroSubtitle, heroButtonText, heroButtonColorScheme, heroImage, featuresTitle, featuresSubtitle, features, description FROM shop_cuentas WHERE username = ?',
             [shopUsername]
         );
 
