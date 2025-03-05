@@ -22,7 +22,10 @@ exports.login = (req, res) => {
         if (user.is_admin) permissions.push("admin");
         if (user.can_customize) permissions.push("customization");
 
-        const token = jwt.sign({ id: user.id }, 'secret_key', { expiresIn: '1h' });
+        const token = jwt.sign({ 
+            id: user.id,
+            username: user.username 
+        }, 'secret_key', { expiresIn: '1h' });
 
         // Eliminar datos sensibles directamente del objeto user
         delete user.password;

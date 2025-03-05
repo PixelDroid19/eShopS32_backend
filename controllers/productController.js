@@ -2,9 +2,30 @@
 const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const NodeCache = require('node-cache');
 
-// Exportar la función para obtener productos
-exports.getProducts = (req, res) => {
+// Create a cache instance with standard TTL of 5 minutes
+const productCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+
+// Create rate limiter with more restrictive settings for high traffic
+const productsLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute window
+    max: 30, // limit each IP to 30 requests per windowMs
+    message: { message: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipFailedRequests: false,
+    keyGenerator: (req) => req.ip, // Use IP for rate limiting
+    skip: (req) => req.method === 'OPTIONS' // Skip preflight requests
+});
+
+// Apply rate limiter to getProducts with connection pooling
+exports.getProducts = [productsLimiter, (req, res) => {
+    // Add request timeout
+    req.setTimeout(5000, () => {
+        res.status(408).json({ message: 'Request timeout' });
+    });
     // Obtener parámetros de paginación, categoría, precio mínimo y máximo de la consulta
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -12,93 +33,132 @@ exports.getProducts = (req, res) => {
     const category = req.query.category;
     const minPrice = parseFloat(req.query.minPrice);
     const maxPrice = parseFloat(req.query.maxPrice);
-    const sortBy = req.query.sortBy || 'id'; // Ordenar por defecto por ID
-    const order = req.query.order === 'desc' ? 'DESC' : 'ASC'; // Orden ascendente por defecto
-    const search = req.query.search ? req.query.search.trim() : ''; // Capturar el término de búsqueda
-    const shopUsername = req.baseUrl.split('/')[1]
-
-    let query = 'SELECT *, CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) AS price_numeric FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
-    let countQuery = 'SELECT COUNT(*) as total FROM shop_products WHERE shop_username = ? AND is_active = TRUE';
-    let queryParams = [shopUsername]; // Agregar shopUsername al arreglo de parámetros
-
-    // Validar que el precio mínimo no sea mayor que el máximo
+    const sortBy = req.query.sortBy || 'id';
+    const order = req.query.order === 'desc' ? 'DESC' : 'ASC';
+    const search = req.query.search ? req.query.search.trim() : '';
+    const shopUsername = req.baseUrl.split('/')[1];
+    
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+        return res.status(400).json({ message: 'Invalid pagination parameters' });
+    }
+    
+    // Create a cache key based on all query parameters
+    const cacheKey = `products_${shopUsername}_${page}_${limit}_${category || ''}_${minPrice || ''}_${maxPrice || ''}_${sortBy}_${order}_${search}`;
+    
+    // Check if we have a cached result
+    const cachedResult = productCache.get(cacheKey);
+    if (cachedResult) {
+        return res.json(cachedResult);
+    }
+    
+    // Optimize the query by using a subquery for price conversion
+    let query = `
+        WITH product_prices AS (
+            SELECT *, 
+                CAST(REPLACE(REPLACE(price, '.', ''), ',', '.') AS DECIMAL(10,2)) AS price_numeric 
+            FROM shop_products 
+            WHERE shop_username = ? 
+            AND is_active = TRUE
+        )
+    `;
+    
+    let mainQuery = 'SELECT * FROM product_prices WHERE 1=1';
+    let countQuery = 'SELECT COUNT(*) as total FROM product_prices WHERE 1=1';
+    let queryParams = [shopUsername];
+    
+    // Validate price range
     if ((minPrice && maxPrice) && (minPrice > maxPrice)) {
         return res.status(400).json({ message: 'El precio mínimo no puede ser mayor que el precio máximo' });
     }
-
-    // Si se proporciona una categoría, añadir el filtro a las consultas
+    
+    // Add filters
     if (category) {
-        query += ' AND category = ?';
+        mainQuery += ' AND category = ?';
         countQuery += ' AND category = ?';
         queryParams.push(category);
     }
-
-    // Añadir filtro de búsqueda
+    
     if (search) {
-        query += ' AND title LIKE ?';
+        mainQuery += ' AND title LIKE ?';
         countQuery += ' AND title LIKE ?';
-        queryParams.push(`%${search}%`); // Búsqueda parcial
+        queryParams.push(`%${search}%`);
     }
-
-    // Añadir filtros de precio
+    
     if (minPrice) {
-        query += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
-        countQuery += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) >= ?';
+        mainQuery += ' AND price_numeric >= ?';
+        countQuery += ' AND price_numeric >= ?';
         queryParams.push(minPrice);
     }
+    
     if (maxPrice) {
-        query += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
-        countQuery += ' AND CAST(REPLACE(REPLACE(price, ".", ""), ",", ".") AS DECIMAL(10,2)) <= ?';
+        mainQuery += ' AND price_numeric <= ?';
+        countQuery += ' AND price_numeric <= ?';
         queryParams.push(maxPrice);
     }
-
-    // Añadir ordenamiento
-    if (sortBy === 'price') {
-        query += ` ORDER BY price_numeric ${order}`;
-    } else {
-        query += ` ORDER BY ${sortBy} ${order}`;
-    }
-
-    // Añadir límite y offset para la paginación
-    query += ' LIMIT ? OFFSET ?';
-    queryParams.push(limit, offset);
-
-    // Ejecutar la consulta para contar el total de productos
-    db.query(countQuery, queryParams, (error, countResults) => {
-        if (error) {
-            console.error('Error al contar productos:', error);
-            return res.status(500).json({ message: 'Error al obtener productos' });
+    
+    // Add sorting
+    mainQuery += sortBy === 'price' 
+        ? ` ORDER BY price_numeric ${order}` 
+        : ` ORDER BY ${sortBy} ${order}`;
+    
+    // Add pagination
+    mainQuery += ' LIMIT ? OFFSET ?';
+    const paginationParams = [...queryParams, limit, offset];
+    
+    // Use Promise.all to run queries concurrently
+    Promise.all([
+        new Promise((resolve, reject) => {
+            db.query(query + countQuery, queryParams, (error, results) => {
+                if (error) reject(error);
+                else resolve(results[0].total);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.query(query + mainQuery, paginationParams, (error, results) => {
+                if (error) reject(error);
+                else resolve(results);
+            });
+        })
+    ])
+    .then(([totalProducts, products]) => {
+        // Handle no products found
+        if (totalProducts === 0) {
+            if (category) {
+                return res.status(404).json({ 
+                    message: 'No se encontraron productos para la categoría especificada'
+                });
+            }
+            return res.json({
+                products: [],
+                currentPage: page,
+                totalPages: 0,
+                totalProducts: 0
+            });
         }
 
-        // Obtener el total de productos
-        const totalProducts = countResults[0].total;
-
-        // Si no hay productos para la categoría especificada, devolver un error 404
-        if (totalProducts === 0 && category) {
-            return res.status(404).json({ message: 'No se encontraron productos para la categoría especificada' });
-        }
-
-        // Calcular el total de páginas
+        // Calculate total pages
         const totalPages = Math.ceil(totalProducts / limit);
 
-        // Ejecutar la consulta principal para obtener los productos
-        db.query(query, queryParams, (error, results) => {
-            if (error) {
-                console.error('Error al obtener productos:', error);
-                return res.status(500).json({ message: 'Error al obtener productos' });
-            }
+        // Create response object
+        const responseData = {
+            products,
+            currentPage: page,
+            totalPages,
+            totalProducts
+        };
+        
+        // Cache the result
+        productCache.set(cacheKey, responseData);
 
-            // Devolver la respuesta con los productos y la información de paginación
-            res.json({
-                products: results,
-                currentPage: page,
-                totalPages: totalPages,
-                totalProducts: totalProducts
-            });
-        });
+        // Send response with products and pagination metadata
+        res.json(responseData);
+    })
+    .catch(error => {
+        console.error('Error al obtener productos:', error);
+        res.status(500).json({ message: 'Error al obtener productos' });
     });
-};
-
+}];
 /*
 Ejemplos de uso:
 Para obtener todos los productos: GET /products
@@ -122,6 +182,9 @@ exports.deleteProduct = (req, res) => {
         if (results.affectedRows === 0) {
             return res.status(404).json({ message: 'Producto no encontrado o no pertenece a esta tienda' });
         }
+        
+        // Invalidate cache when a product is deleted
+        productCache.flushAll();
 
         res.status(200).json({ message: 'Producto desactivado exitosamente' });
     });
@@ -144,6 +207,9 @@ exports.updateProduct = (req, res) => {
         if (results.affectedRows === 0) {
             return res.status(404).json({ message: 'Producto no encontrado o no pertenece a esta tienda' });
         }
+        
+        // Invalidate cache when a product is updated
+        productCache.flushAll();
 
         res.status(200).json({ message: 'Producto actualizado exitosamente' });
     });
@@ -160,6 +226,9 @@ exports.addProduct = (req, res) => {
             console.error('Error al añadir el producto:', error);
             return res.status(500).json({ message: 'Error al añadir el producto', error: error });
         }
+        
+        // Invalidate cache when a new product is added
+        productCache.flushAll();
 
         res.status(201).json({ 
             message: 'Producto añadido exitosamente',
